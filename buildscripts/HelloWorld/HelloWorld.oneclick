@@ -8,7 +8,7 @@
         <property name="configuration" value="debug" />
         <property name="Application" value="HelloWorld" />
         
-        <!-- Output directory where our executables should be written to -->  
+        <!-- Server detais and current directory -->  
         <property name="server" value="**.***.**.*" />
         <property name="server.username" value="*****" />
         <property name="server.password" value="******" />
@@ -16,26 +16,23 @@
         <property name="server.folder" value="public_html" />
         <property name="CurrentDirectory" value="${directory::get-current-directory()}" />    
         
-        <!-- Location of the MSBuild executable, we use this to build projects -->        
+        <!-- Location of the executables -->        
 	    <property name="msbuild" value="${CurrentDirectory}\tools\MSbuild\msbuild.exe" />
 	    <property name="svn" value="${CurrentDirectory}\tools\svn\bin\svn.exe" />
 	    <property name="nunit" value="${CurrentDirectory}\Tools\NUnit\nunit-console.exe" />
         <property name="winscp" value="${CurrentDirectory}\tools\WinSCP\winscp.com" />
                 
-        
-        <property name="debug" value="true" overwrite="false" />
-                
     <!-- ============= -->
     <!-- Main          -->
     <!-- ============= -->              
-        <target name="Main" description="Runs all sub tasks to clean update and build">               
+        <target name="Main" description="Runs all sub tasks: clean, update, build, run tests, build release folder, deploy">               
             <call target="deploy" />        
         </target>                
                 
     <!-- ============ -->
     <!-- Cleaning     -->
     <!-- ============ -->      
-        <target name="clean" description="remove all generated files">
+        <target name="clean" description="Removes all generated files">
             <echo message="Starts cleaning"/>
             <delete>
                 <fileset>
@@ -88,7 +85,7 @@
     <!-- ============ -->
     <!-- Cleaning     -->
     <!-- ============ -->      
-        <target name="cleanrelease" description="remove all generated files" depends="test">
+        <target name="cleanrelease" description="Removes all generated files" depends="test">
             <echo message="Starts cleaning"/>
             <delete>
                 <fileset>
@@ -97,14 +94,14 @@
                     <include name="${CurrentDirectory}\src\deployment\${Application}.Deploy\Release\" />
                 </fileset>
             </delete>
-            <echo message="Cleaning compleated"/>
+            <echo message="Cleaning completed"/>
         </target>
         
     <!-- ============ -->
     <!-- Release      -->
     <!-- ============ -->  
 
-        <target name="release" description="generates release" depends="cleanrelease">
+        <target name="release" description="Generates release folder" depends="cleanrelease">
             <echo message="Starts generating Release folder"/>
             <exec program="${msbuild}" commandline='"${CurrentDirectory}\src\deployment\${Application}.Deploy\${Application}.Deploy.wdproj" /p:configuration=Release /toolsversion:4.0 /v:quiet /nologo /m' />
              <echo message="Release folder generated"/>            
@@ -122,6 +119,6 @@
 			<arg value="close" />
 			<arg value="exit" />
             </exec>
-             <echo message="Deploy compleated"/>            
+             <echo message="Deploy complated"/>            
         </target>           
 </project>
