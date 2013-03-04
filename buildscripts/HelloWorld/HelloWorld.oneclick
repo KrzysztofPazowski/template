@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="HelloWorld" default="Main" basedir=".">
+    
+    <!-- ============= -->
+    <!-- Configuration -->
+    <!-- ============= -->
+        <!-- Build as: release, debug, etc. -->
+        <property name="configuration" value="debug" />
+        <property name="Application" value="HelloWorld" />
+        
+        <!-- Output directory where our executables should be written to -->  
+        <property name="server" value="**.***.**.*" />
+        <property name="server.username" value="*****" />
+        <property name="server.password" value="******" />
+        <property name="server.ssh" value="ssh-rsa **** **:**:**:**:**:**:**:**:**:**:**:**:**:**:**:**" />
+        <property name="server.folder" value="public_html" />
+        <property name="CurrentDirectory" value="${directory::get-current-directory()}" />    
+        
+        <!-- Location of the MSBuild executable, we use this to build projects -->        
+	    <property name="msbuild" value="${CurrentDirectory}\tools\MSbuild\msbuild.exe" />
+	    <property name="svn" value="${CurrentDirectory}\tools\svn\bin\svn.exe" />
+	    <property name="nunit" value="${CurrentDirectory}\Tools\NUnit\nunit-console.exe" />
+        <property name="winscp" value="${CurrentDirectory}\tools\WinSCP\winscp.com" />
+                
+        
+        <property name="debug" value="true" overwrite="false" />
+                
+    <!-- ============= -->
+    <!-- Main          -->
+    <!-- ============= -->              
+        <target name="Main" description="Runs all sub tasks to clean update and build">               
+            <call target="deploy" />        
+        </target>                
+                
+    <!-- ============ -->
+    <!-- Cleaning     -->
+    <!-- ============ -->      
+        <target name="clean" description="remove all generated files">
+            <echo message="Starts cleaning"/>
+            <delete>
+                <fileset>
+                    <include name="${CurrentDirectory}\src\app\${Application}\bin\" />
+                    <include name="${CurrentDirectory}\src\app\${Application}\obj\" />
+                    <include name="${CurrentDirectory}\src\app\${Application}\*.suo" />
+                    <include name="${CurrentDirectory}\src\app\${Application}\*.user" />
+                    <include name="${CurrentDirectory}\src\test\${Application}Tests\bin\" />
+                    <include name="${CurrentDirectory}\src\test\${Application}Tests\obj\" />
+                    <include name="${CurrentDirectory}\src\test\${Application}Tests\*.suo" />
+                    <include name="${CurrentDirectory}\src\test\${Application}Tests\*.user" />
+                    <include name="${CurrentDirectory}\src\deployment\${Application}.Deploy\Release\" />
+                </fileset>
+            </delete>
+            <echo message="Cleaning completed"/>
+        </target>
+
+    <!-- ============ -->
+    <!-- Svn          -->
+    <!-- ============ -->  
+
+        <target name="svn" description="Clean solution, updates" depends="clean">
+            <echo message="Start Building"/>
+            <exec program="${svn}" commandline='cleanup "${CurrentDirectory}"' />  
+            <exec program="${svn}" commandline='update "${CurrentDirectory}"' />  
+            <echo message="Svn update completed"/>            
+        </target>    
+       
+    <!-- ============ -->
+    <!-- Building     -->
+    <!-- ============ -->  
+
+        <target name="build" description="Compiles the source code" depends="svn">
+            <echo message="Start Building"/>
+            <exec program="${msbuild}" commandline='"${CurrentDirectory}\${Application}.sln" /v:quiet /nologo /t:Build /p:Configuration=${configuration}' />  
+            <echo message="Building completed"/>            
+        </target>            
+        
+    <!-- ============ -->
+    <!-- Run Tests    -->
+    <!-- ============ -->  
+
+        <target name="test" description="Runs all unit tests" depends="build">
+            <echo message="Start Running tests"/>
+            <exec program="${nunit}" commandline='"${CurrentDirectory}\src\test\${Application}Tests\bin\Debug\${Application}Tests.dll" /nologo /framework=4.0.30319 /exclude=Regression,Integration,Utility,Performance' />
+             <echo message="Tests completed"/>            
+        </target>   
+        
+        
+    <!-- ============ -->
+    <!-- Cleaning     -->
+    <!-- ============ -->      
+        <target name="cleanrelease" description="remove all generated files" depends="test">
+            <echo message="Starts cleaning"/>
+            <delete>
+                <fileset>
+                    <include name="${CurrentDirectory}\src\deployment\${Application}.Deploy\Debug\" />
+                    <include name="${CurrentDirectory}\src\deployment\${Application}.Deploy\obj\" />
+                    <include name="${CurrentDirectory}\src\deployment\${Application}.Deploy\Release\" />
+                </fileset>
+            </delete>
+            <echo message="Cleaning compleated"/>
+        </target>
+        
+    <!-- ============ -->
+    <!-- Release      -->
+    <!-- ============ -->  
+
+        <target name="release" description="generates release" depends="cleanrelease">
+            <echo message="Starts generating Release folder"/>
+            <exec program="${msbuild}" commandline='"${CurrentDirectory}\src\deployment\${Application}.Deploy\${Application}.Deploy.wdproj" /p:configuration=Release /toolsversion:4.0 /v:quiet /nologo /m' />
+             <echo message="Release folder generated"/>            
+        </target>    
+
+    <!-- ============ -->
+    <!-- Deploy    -->
+    <!-- ============ -->  
+        <target name="deploy" description="Deploys to server" depends="release">
+            <echo message="Starts deploying to server"/>
+            <exec program="${winscp}" commandline='/command "open sftp://${server.username}:${server.password}@${server} -hostkey=""${server.ssh}"""'>
+			<arg value="cd ${server.folder}" />
+            <arg value="rmdir ${Application}" />
+			<arg value="put ${CurrentDirectory}\src\deployment\${Application}.Deploy\Release\ ${Application}\" />
+			<arg value="close" />
+			<arg value="exit" />
+            </exec>
+             <echo message="Deploy compleated"/>            
+        </target>           
+</project>
